@@ -1221,8 +1221,7 @@ async function sendChatMessage() {
         if (c.assignedTo) {
             recipientEmail = c.assignedTo;
         } else {
-            const hod = users.find(u => u.role === 'hod');
-            recipientEmail = hod ? hod.email : 'ecedepartment100@gmail.com';
+            recipientEmail = 'garvitarora2310@gmail.com';
         }
     } else {
         // If Teacher/HOD sends, notify Student

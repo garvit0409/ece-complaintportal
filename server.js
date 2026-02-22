@@ -145,7 +145,7 @@ app.post('/send-email', async (req, res) => {
     const { to, subject, text } = req.body;
 
     const mailOptions = {
-        from: '"Grievance Portal" <ecedepartment100@gmail.com>',
+        from: `"Grievance Portal" <${process.env.EMAIL_USER}>`,
         to: to,
         subject: subject,
         text: text
