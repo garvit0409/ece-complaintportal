@@ -80,6 +80,15 @@ const transporter = nodemailer.createTransport({
     socketTimeout: 10000
 });
 
+// Verify connection configuration
+transporter.verify(function (error, success) {
+    if (error) {
+        console.log("Email Service Error:", error);
+    } else {
+        console.log("Email Service is ready to send emails");
+    }
+});
+
 // --- API ROUTES ---
 
 // 1. Auth & Users
@@ -143,6 +152,7 @@ app.put('/api/complaints/:id', async (req, res) => {
 // 3. Email
 app.post('/send-email', async (req, res) => {
     const { to, subject, text } = req.body;
+    console.log(`Attempting to send email to: ${to}`);
 
     const mailOptions = {
         from: `"Grievance Portal" <${process.env.EMAIL_USER}>`,
