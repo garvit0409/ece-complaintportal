@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const nodemailer = require('nodemailer');
 const path = require('path');
 
 const app = express();
@@ -69,25 +68,6 @@ async function seedUsers() {
 }
 
 // --- EMAIL CONFIGURATION ---
-const transporter = nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 587,
-    secure: false,
-    auth: {
-        user: process.env.BREVO_USER || process.env.EMAIL_USER, // Use specific login email if provided
-        pass: process.env.BREVO_SMTP_KEY
-    }
-});
-
-// Verify connection configuration
-transporter.verify(function (error, success) {
-    if (error) {
-        console.log("Email Service Error:", error);
-    } else {
-        console.log("Email Service is ready to send emails");
-    }
-});
-
 // --- API ROUTES ---
 
 // 1. Auth & Users
@@ -153,17 +133,32 @@ app.post('/send-email', async (req, res) => {
     const { to, subject, text } = req.body;
     console.log(`Attempting to send email to: ${to}`);
 
-    const mailOptions = {
-        from: `"Grievance Portal" <${process.env.EMAIL_USER}>`,
-        to: to,
-        subject: subject,
-        text: text
+    const url = 'https://api.brevo.com/v3/smtp/email';
+    const options = {
+        method: 'POST',
+        headers: {
+            'accept': 'application/json',
+            'api-key': process.env.BREVO_SMTP_KEY,
+            'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+            sender: { name: 'Grievance Portal', email: process.env.EMAIL_USER },
+            to: [{ email: to }],
+            subject: subject,
+            textContent: text
+        })
     };
 
     try {
-        await transporter.sendMail(mailOptions);
-        console.log(`Email sent to ${to}`);
-        res.json({ success: true, message: 'Email sent successfully' });
+        const response = await fetch(url, options);
+        const data = await response.json();
+        if (response.ok) {
+            console.log(`Email sent to ${to}`);
+            res.json({ success: true, message: 'Email sent successfully' });
+        } else {
+            console.error('Brevo API Error:', data);
+            res.status(500).json({ success: false, error: data.message || 'Failed to send email' });
+        }
     } catch (error) {
         console.error('Error sending email:', error);
         res.status(500).json({ success: false, error: error.message });
