@@ -30,6 +30,7 @@ const UserSchema = new mongoose.Schema({
     email: { type: String, unique: true },
     pass: String,
     dept: String,
+    year: String,
     enroll: String,
     isAdmin: { type: Boolean, default: false }
 });
@@ -124,6 +125,41 @@ app.post('/api/complaints', async (req, res) => {
 app.put('/api/complaints/:id', async (req, res) => {
     try {
         await Complaint.findOneAndUpdate({ id: req.params.id }, req.body);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/users/promote-all', async (req, res) => {
+    try {
+        const students = await User.find({ role: 'student' });
+        const bulkOps = students.map(student => {
+            let newYear = student.year;
+            if (student.year === '1') newYear = '2';
+            else if (student.year === '2') newYear = '3';
+            else if (student.year === '3') newYear = '4';
+            else if (student.year === '4') newYear = 'Graduated';
+            
+            if (newYear !== student.year) {
+                return {
+                    updateOne: {
+                        filter: { _id: student._id },
+                        update: { year: newYear }
+                    }
+                };
+            }
+            return null;
+        }).filter(op => op !== null);
+
+        if (bulkOps.length > 0) {
+            await User.bulkWrite(bulkOps);
+        }
+        res.json({ success: true, count: bulkOps.length });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/complaints/:id', async (req, res) => {
+    try {
+        await Complaint.findOneAndDelete({ id: req.params.id });
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });

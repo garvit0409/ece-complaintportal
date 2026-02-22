@@ -81,6 +81,15 @@
                     <div class="col-md-6 mb-3"><input type="text" id="regEnroll" class="form-control" placeholder="Enrollment No" required></div>
                 </div>
                 <div class="mb-3">
+                    <select id="regYear" class="form-control" required>
+                        <option value="">Select Year</option>
+                        <option value="1">1st Year</option>
+                        <option value="2">2nd Year</option>
+                        <option value="3">3rd Year</option>
+                        <option value="4">4th Year</option>
+                    </select>
+                </div>
+                <div class="mb-3">
                     <select id="regDept" class="form-control" required>
                         <option value="">Select Department</option>
                         <option value="ECE">ECE</option>
@@ -198,10 +207,12 @@
                         </div>
                         
                         <div class="tab-pane fade" id="tab-history">
-                            <table class="table table-hover">
-                                <thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Action</th></tr></thead>
-                                <tbody id="studentComplaintTable"></tbody>
-                            </table>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Action</th></tr></thead>
+                                    <tbody id="studentComplaintTable"></tbody>
+                                </table>
+                            </div>
                         </div>
                         
                         <div class="tab-pane fade" id="tab-settings">
@@ -247,18 +258,22 @@
             <div class="tab-content">
                 <div class="tab-pane fade show active" id="teacher-complaints">
                     <div class="card p-3">
-                        <table class="table">
-                            <thead><tr><th>ID</th><th>Student</th><th>Title</th><th>Status</th><th>Actions</th></tr></thead>
-                            <tbody id="teacherComplaintTable"></tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead><tr><th>ID</th><th>Student</th><th>Title</th><th>Status</th><th>Actions</th></tr></thead>
+                                <tbody id="teacherComplaintTable"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 <div class="tab-pane fade" id="teacher-students">
                     <div class="card p-3">
-                        <table class="table table-striped">
-                            <thead><tr><th>Name</th><th>Enrollment</th><th>Dept</th><th>Email</th></tr></thead>
-                            <tbody id="teacherStudentTable"></tbody>
-                        </table>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead><tr><th>Name</th><th>Enrollment</th><th>Dept</th><th>Year</th><th>Email</th></tr></thead>
+                                <tbody id="teacherStudentTable"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 <div class="tab-pane fade" id="teacher-settings">
@@ -289,8 +304,12 @@
 
     <section id="hod-portal" class="hidden">
         <div class="d-flex">
-            <div class="sidebar col-md-2 d-none d-md-block">
-                <div class="p-3 fw-bold border-bottom">HOD Panel</div>
+            <!-- Mobile Toggle -->
+            <button class="btn btn-dark d-md-none position-fixed top-0 start-0 m-2" style="z-index: 1050;" onclick="document.getElementById('hodSidebar').classList.toggle('d-none')">
+                <i class="fa fa-bars"></i>
+            </button>
+            <div id="hodSidebar" class="sidebar col-md-2 d-none d-md-block">
+                <div class="p-3 fw-bold border-bottom mt-5 mt-md-0">HOD Panel</div>
                 <a href="#" onclick="switchHODTab('overview')" id="link-overview">Analytics</a>
                 <a href="#" onclick="switchHODTab('my-complaints')" id="link-my-complaints">My Complaints</a>
                 <a href="#" onclick="switchHODTab('assignments')" id="link-assignments">All Complaints</a>
@@ -311,20 +330,24 @@
                 </div>
                 <div id="hod-my-complaints" class="hidden">
                     <h3>My Complaints (Unassigned)</h3>
-                    <table class="table table-bordered bg-white">
-                        <thead><tr><th>ID</th><th>Category</th><th>Status</th><th>Action</th></tr></thead>
-                        <tbody id="hodMyComplaintTable"></tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-bordered bg-white">
+                            <thead><tr><th>ID</th><th>Category</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody id="hodMyComplaintTable"></tbody>
+                        </table>
+                    </div>
                 </div>
                 <div id="hod-assignments" class="hidden">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h3>All Complaints</h3>
                         <select id="hodFilterTeacher" class="form-select w-auto" onchange="filterHODComplaints()"></select>
                     </div>
-                    <table class="table table-bordered bg-white">
-                        <thead><tr><th>ID</th><th>Category</th><th>Assigned To</th><th>Status</th><th>Action</th></tr></thead>
-                        <tbody id="hodComplaintTable"></tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-bordered bg-white">
+                            <thead><tr><th>ID</th><th>Category</th><th>Assigned To</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody id="hodComplaintTable"></tbody>
+                        </table>
+                    </div>
                 </div>
                 <div id="hod-teachers" class="hidden">
                     <div class="d-flex justify-content-between"><h3>Teachers</h3><button class="btn btn-primary btn-sm" onclick="showAddTeacherModal()">+ Add</button></div>
@@ -333,7 +356,10 @@
                 <div id="hod-students" class="hidden">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h3>Registered Students</h3>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-info text-white" onclick="promoteAllStudents()">
+                                <i class="fa fa-graduation-cap"></i> Promote All
+                            </button>
                             <input type="text" id="hodStudentSearch" class="form-control" placeholder="Search Name/Enrollment" onkeyup="loadHODStudents()">
                             <select id="hodStudentFilter" class="form-select w-auto" onchange="loadHODStudents()">
                                 <option value="All">All Departments</option>
@@ -344,10 +370,12 @@
                             </select>
                         </div>
                     </div>
-                    <table class="table table-striped bg-white">
-                        <thead><tr><th>Name</th><th>Enrollment</th><th>Dept</th><th>Email</th><th>Action</th></tr></thead>
-                        <tbody id="hodStudentTable"></tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-striped bg-white">
+                            <thead><tr><th>Name</th><th>Enrollment</th><th>Dept</th><th>Year</th><th>Email</th><th>Action</th></tr></thead>
+                            <tbody id="hodStudentTable"></tbody>
+                        </table>
+                    </div>
                 </div>
                 <div id="hod-settings" class="hidden">
                     <h3>Settings</h3>
@@ -388,10 +416,12 @@
                         <div class="col-6">
                             <p><strong>ID:</strong> <span id="viewId"></span></p>
                             <p><strong>Student:</strong> <span id="viewStudent"></span></p>
+                            <p><strong>Submitted:</strong> <span id="viewSubmitted"></span></p>
                         </div>
                         <div class="col-6">
                             <p><strong>Assigned To:</strong> <span id="viewAssigned"></span></p>
                             <p><strong>Status:</strong> <span id="viewStatus"></span></p>
+                            <p><strong>Last Updated:</strong> <span id="viewUpdated"></span></p>
                         </div>
                     </div>
                     <hr>
@@ -511,6 +541,7 @@ async function handleRegister(e) {
         name: document.getElementById('regName').value,
         enroll: document.getElementById('regEnroll').value,
         dept: document.getElementById('regDept').value,
+        year: document.getElementById('regYear').value,
         email: document.getElementById('regEmail').value,
         pass: document.getElementById('regPass').value,
         id: 'S' + Date.now()
@@ -614,6 +645,7 @@ function loadStudentPortal() {
     document.getElementById('studentProfileData').innerHTML = `
         <p><strong>Name:</strong> ${currentUser.name}</p>
         <p><strong>ID:</strong> ${currentUser.enroll}</p>
+        <p><strong>Year:</strong> ${currentUser.year || 'N/A'}</p>
         <p><strong>Dept:</strong> ${currentUser.dept}</p>
     `;
     loadStudentComplaints();
@@ -782,6 +814,7 @@ async function loadStudentComplaints() {
             <td>${c.title}</td>
             <td><span class="status-badge status-${c.status.replace(/ /g,'')}">${c.status}</span></td>
             <td><button class="btn btn-sm btn-info" onclick="viewComplaint('${c.id}')">View</button></td>
+            <td>${c.status === 'Closed' ? `<button class="btn btn-sm btn-danger ms-1" onclick="deleteComplaint('${c.id}')"><i class="fa fa-trash"></i></button>` : ''}</td>
         </tr>
     `).join('');
 }
@@ -835,6 +868,7 @@ async function loadTeacherStudents() {
             <td>${s.name}</td>
             <td>${s.enroll}</td>
             <td>${s.dept}</td>
+            <td>${s.year || '-'}</td>
             <td>${s.email}</td>
         </tr>
     `).join('');
@@ -915,6 +949,7 @@ async function filterHODComplaints() {
             <td>${c.assignedTo || '<span class="text-danger">Unassigned</span>'}</td>
             <td><span class="status-badge status-${c.status.replace(/ /g,'')}">${c.status}</span></td>
             <td><button class="btn btn-sm btn-primary" onclick="viewComplaint('${c.id}')">Manage</button></td>
+            <td>${c.status === 'Closed' ? `<button class="btn btn-sm btn-danger ms-1" onclick="deleteComplaint('${c.id}')"><i class="fa fa-trash"></i></button>` : ''}</td>
         </tr>
     `).join('');
 }
@@ -938,10 +973,47 @@ async function loadHODStudents() {
             <td>${s.name}</td>
             <td>${s.enroll}</td>
             <td>${s.dept}</td>
+            <td>${s.year || 'N/A'}</td>
             <td>${s.email}</td>
-            <td><button class="btn btn-warning btn-sm" onclick="adminChangeUserPassword('${s.email}')">Reset Pass</button></td>
+            <td>
+                <button class="btn btn-warning btn-sm mb-1" onclick="adminChangeUserPassword('${s.email}')">Reset Pass</button>
+                <button class="btn btn-info btn-sm mb-1" onclick="promoteStudent('${s.id}', '${s.year}')">Promote</button>
+                <button class="btn btn-danger btn-sm mb-1" onclick="removeStudent('${s.email}')">Remove</button>
+            </td>
         </tr>
     `).join('');
+}
+
+async function promoteStudent(id, currentYear) {
+    if(!confirm("Promote this student to the next year?")) return;
+    
+    let newYear = parseInt(currentYear) + 1;
+    let val = newYear.toString();
+    if(currentYear === '4') val = 'Graduated';
+    if(currentYear === 'Graduated') return; 
+
+    await api.put(`/users/${id}`, { year: val });
+    loadHODStudents();
+    showToast("Student Promoted");
+}
+
+async function promoteAllStudents() {
+    if(!confirm("Are you sure you want to promote ALL students to the next year? (1->2, 2->3, 3->4, 4->Graduated)")) return;
+    const res = await api.post('/users/promote-all', {});
+    if(res.ok) {
+        showToast("All students promoted!");
+        loadHODStudents();
+    } else {
+        alert("Failed to promote students");
+    }
+}
+
+async function removeStudent(email) {
+    if(confirm("Are you sure you want to remove this student? This cannot be undone.")) {
+        await api.del(`/users/${email}`);
+        loadHODStudents();
+        showToast("Student removed");
+    }
 }
 
 async function loadHODTeachers() {
@@ -1062,6 +1134,14 @@ async function viewComplaint(id) {
     document.getElementById('viewStudent').innerText = c.studentName;
     document.getElementById('viewAssigned').innerText = c.assignedTo || "HOD Pool";
     document.getElementById('viewStatus').innerText = c.status;
+    document.getElementById('viewSubmitted').innerText = c.timestamp ? new Date(c.timestamp).toLocaleString() : 'N/A';
+    
+    let lastUpdate = 'N/A';
+    if (c.history && c.history.length > 0) {
+        lastUpdate = c.history[c.history.length - 1].date;
+    }
+    document.getElementById('viewUpdated').innerText = lastUpdate;
+
     document.getElementById('viewTitle').innerText = c.title;
     document.getElementById('viewDesc').innerText = c.description;
     
@@ -1115,6 +1195,20 @@ async function viewComplaint(id) {
         document.getElementById('updateStatusSelect').innerHTML = `<option value="Reopen">Reopen Complaint</option>`;
     }
 
+    // 4. Delete Option for Closed Complaints (HOD/Student)
+    if (c.status === 'Closed') {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-danger w-100 mt-2';
+        btn.innerHTML = '<i class="fa fa-trash"></i> Delete Complaint Permanently';
+        btn.onclick = () => deleteComplaint(c.id);
+        // Append to action form or create new area
+        if(!document.getElementById('deleteBtnArea')) {
+            const div = document.createElement('div'); div.id = 'deleteBtnArea'; div.className = 'mt-2';
+            div.appendChild(btn);
+            document.querySelector('.modal-body').appendChild(div);
+        }
+    }
+
     // 3. HOD: Assign Teacher
     if ((currentUser.role === 'hod' || currentUser.isAdmin) && c.status !== 'Closed') {
         assignForm.classList.remove('hidden');
@@ -1126,7 +1220,21 @@ async function viewComplaint(id) {
     // Show Modal
     currentModal = new bootstrap.Modal(document.getElementById('detailModal'));
     currentModal.show();
+    // Clear delete button if not closed
+    if(c.status !== 'Closed' && document.getElementById('deleteBtnArea')) {
+        document.getElementById('deleteBtnArea').remove();
+    }
     document.getElementById('detailModal').dataset.cid = id;
+}
+
+async function deleteComplaint(id) {
+    if(confirm("Are you sure you want to delete this closed complaint permanently? This cannot be undone.")) {
+        await api.del(`/complaints/${id}`);
+        if(currentModal) currentModal.hide();
+        showToast("Complaint deleted");
+        if(currentUser.role === 'student') loadStudentComplaints();
+        else if(currentUser.role === 'hod') loadHODComplaints();
+    }
 }
 
 async function submitUpdate() {
