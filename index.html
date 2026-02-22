@@ -399,10 +399,19 @@ const api = {
     del: async (endpoint) => { toggleLoading(true); try { return await fetch('/api' + endpoint, { method: 'DELETE' }); } finally { toggleLoading(false); } }
 };
 
+let loadingCount = 0;
 function toggleLoading(show) {
     const el = document.getElementById('loadingOverlay');
-    if (show) el.classList.remove('hidden');
-    else el.classList.add('hidden');
+    if (show) {
+        loadingCount++;
+        el.classList.remove('hidden');
+    } else {
+        loadingCount--;
+        if (loadingCount <= 0) {
+            loadingCount = 0;
+            el.classList.add('hidden');
+        }
+    }
 }
 
 let currentUser = null;
@@ -617,6 +626,7 @@ function readFileAsBase64(file) {
 
 async function handleComplaintSubmit(e) {
     e.preventDefault();
+    toggleLoading(true); // Start loading immediately
     const isAnon = document.getElementById('compAnon').checked;
     const submitTo = document.querySelector('input[name="submitTo"]:checked').value;
     
@@ -641,18 +651,21 @@ async function handleComplaintSubmit(e) {
             } catch (err) {
                 console.error("Compression error:", err);
                 alert("Failed to process image.");
+                toggleLoading(false);
                 return;
             }
         } else {
             // For non-images, enforce strict size limit to preserve storage
             if (file.size > 200 * 1024) { // 200KB limit
                 alert("File too large! To preserve storage, non-image attachments must be under 200KB.");
+                toggleLoading(false);
                 return;
             }
             try {
                 attachmentData = await readFileAsBase64(file);
             } catch (err) {
                 alert("Failed to read file.");
+                toggleLoading(false);
                 return;
             }
         }
@@ -674,29 +687,37 @@ async function handleComplaintSubmit(e) {
         timestamp: new Date().toISOString()
     };
 
-    await api.post('/complaints', complaint);
-    
-    // Send Email Alert
-    if (!isAnon) {
-        await sendEmail(currentUser.email, "Complaint Received", `Your complaint (ID: ${complaint.id}) has been submitted successfully.`);
-    }
+    try {
+        const res = await api.post('/complaints', complaint);
+        if (!res.ok) throw new Error("Failed to save complaint to database.");
+        
+        // Send Email Alert
+        if (!isAnon) {
+            await sendEmail(currentUser.email, "Complaint Received", `Your complaint (ID: ${complaint.id}) has been submitted successfully.`);
+        }
 
-    // Notify HOD or Assigned Teacher
-    if (assigned) {
-        await sendEmail(assigned, "New Complaint Assigned", `You have been assigned a new complaint (ID: ${complaint.id}).`);
-    } else {
-        // Fetch users to find HOD email
-        const users = await api.get('/users');
-        const hod = users.find(u => u.role === 'hod');
-        const hodEmail = hod ? hod.email : 'ecedepartment100@gmail.com';
-        await sendEmail(hodEmail, "New Complaint Submitted", `A new complaint (ID: ${complaint.id}) has been submitted to the HOD.`);
+        // Notify HOD or Assigned Teacher
+        if (assigned) {
+            await sendEmail(assigned, "New Complaint Assigned", `You have been assigned a new complaint (ID: ${complaint.id}).`);
+        } else {
+            // Fetch users to find HOD email
+            const users = await api.get('/users');
+            const hod = users.find(u => u.role === 'hod');
+            const hodEmail = hod ? hod.email : 'ecedepartment100@gmail.com';
+            await sendEmail(hodEmail, "New Complaint Submitted", `A new complaint (ID: ${complaint.id}) has been submitted to the HOD.`);
+        }
+        
+        showToast('Complaint Submitted');
+        e.target.reset();
+        document.getElementById('toHOD').checked = true;
+        toggleTeacherSelect();
+        loadStudentComplaints();
+    } catch (error) {
+        console.error(error);
+        alert("An error occurred: " + error.message);
+    } finally {
+        toggleLoading(false); // Ensure loading stops no matter what
     }
-    
-    showToast('Complaint Submitted');
-    e.target.reset();
-    document.getElementById('toHOD').checked = true;
-    toggleTeacherSelect();
-    loadStudentComplaints();
 }
 
 async function loadStudentComplaints() {
