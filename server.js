@@ -128,39 +128,41 @@ app.put('/api/complaints/:id', async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 3. Email
+// 3. Email (Using Brevo API)
 app.post('/send-email', async (req, res) => {
     const { to, subject, text } = req.body;
-    console.log(`Attempting to send email to: ${to}`);
-
-    const url = 'https://api.brevo.com/v3/smtp/email';
-    const options = {
-        method: 'POST',
-        headers: {
-            'accept': 'application/json',
-            'api-key': process.env.BREVO_SMTP_KEY,
-            'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-            sender: { name: 'Grievance Portal', email: process.env.EMAIL_USER },
-            to: [{ email: to }],
-            subject: subject,
-            textContent: text
-        })
-    };
+    console.log(`Attempting to send email to: ${to} via Brevo`);
 
     try {
-        const response = await fetch(url, options);
-        const data = await response.json();
-        if (response.ok) {
-            console.log(`Email sent to ${to}`);
-            res.json({ success: true, message: 'Email sent successfully' });
-        } else {
-            console.error('Brevo API Error:', data);
-            res.status(500).json({ success: false, error: data.message || 'Failed to send email' });
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+            method: 'POST',
+            headers: {
+                'accept': 'application/json',
+                // Notice we changed this to match your env variable exactly:
+                'api-key': process.env.BREVO_SMTP_KEY, 
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                sender: { 
+                    name: "ECE Grievance Portal", 
+                    // Notice we use the EMAIL_USER variable here:
+                    email: process.env.EMAIL_USER 
+                },
+                to: [{ email: to }],
+                subject: subject,
+                textContent: text
+            })
+        });
+
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(JSON.stringify(errData));
         }
+
+        console.log(`Email sent successfully to ${to}`);
+        res.json({ success: true, message: 'Email sent successfully via Brevo' });
     } catch (error) {
-        console.error('Error sending email:', error);
+        console.error('Brevo API Error:', error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });

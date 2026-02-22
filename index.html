@@ -756,7 +756,7 @@ async function handleComplaintSubmit(e) {
             await sendEmail(assigned, "New Complaint Assigned", `You have been assigned a new complaint (ID: ${complaint.id}).`);
         } else {
             // Send to specific HOD email
-            const hodEmail = 'ecedepartment100@gmail.com';
+            const hodEmail = 'garvitarora2310@gmail.com';
             await sendEmail(hodEmail, "New Complaint Submitted", `A new complaint (ID: ${complaint.id}) has been submitted to the HOD.`);
         }
         
@@ -1221,7 +1221,7 @@ async function sendChatMessage() {
         if (c.assignedTo) {
             recipientEmail = c.assignedTo;
         } else {
-            recipientEmail = 'ecedepartment100@gmail.com';
+            recipientEmail = 'garvitarora2310@gmail.com';
         }
     } else {
         // If Teacher/HOD sends, notify Student
