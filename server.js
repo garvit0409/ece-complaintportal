@@ -71,21 +71,11 @@ async function seedUsers() {
 // --- EMAIL CONFIGURATION ---
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    family: 4,
+    port: 587,
+    secure: false,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    }
-});
-
-// Verify connection configuration
-transporter.verify(function (error, success) {
-    if (error) {
-        console.log("Email Service Error:", error);
-    } else {
-        console.log("Email Service is ready to send emails");
     }
 });
 
