@@ -337,6 +337,7 @@
                         </table>
                     </div>
                 </div>
+                <div id="hod-assignments" class="hidden">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h3>All Complaints</h3>
                         <select id="hodFilterTeacher" class="form-select w-auto" onchange="filterHODComplaints()"></select>
@@ -347,9 +348,11 @@
                             <tbody id="hodComplaintTable"></tbody>
                         </table>
                     </div>
+                </div>
                 <div id="hod-teachers" class="hidden">
                     <div class="d-flex justify-content-between"><h3>Teachers</h3><button class="btn btn-primary btn-sm" onclick="showAddTeacherModal()">+ Add</button></div>
                     <ul class="list-group mt-3" id="hodTeacherList"></ul>
+                </div>
                 <div id="hod-students" class="hidden">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h3>Registered Students</h3>
