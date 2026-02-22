@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grievance Management System (Final Version)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Core Styles */
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .hidden { display: none !important; }
+        
+        /* Sidebar & Nav */
+        .sidebar { min-height: 100vh; background-color: #343a40; color: white; }
+        .sidebar a { color: #adb5bd; text-decoration: none; display: block; padding: 10px 15px; }
+        .sidebar a:hover, .sidebar a.active { background-color: #495057; color: white; }
+        
+        /* Status Badges */
+        .status-badge { font-size: 0.85em; padding: 5px 10px; border-radius: 20px; color: #fff; }
+        .status-Submitted { background-color: #ffc107; color: #000; } /* Yellow */
+        .status-Seen { background-color: #17a2b8; } /* Teal */
+        .status-UnderReview { background-color: #0d6efd; } /* Blue */
+        .status-InProcess { background-color: #6610f2; } /* Purple */
+        .status-Resolved { background-color: #198754; } /* Green */
+        .status-Closed { background-color: #6c757d; } /* Grey */
+        .status-Reopen { background-color: #dc3545; } /* Red */
+
+        .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1100">
+        <div id="liveToast" class="toast align-items-center text-white bg-primary border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">Action Successful</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75 hidden" style="z-index: 2000;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <section id="login-page" class="container d-flex justify-content-center align-items-center" style="min-height: 100vh;">
+        <div class="card p-4" style="width: 100%; max-width: 400px;">
+            <h3 class="text-center mb-4">Grievance Portal</h3>
+            <form onsubmit="handleLogin(event)">
+                <div class="mb-3">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" class="form-control" placeholder="user@example.com" required>
+                </div>
+                <div class="mb-3">
+                    <label>Password</label>
+                    <input type="password" id="loginPass" class="form-control" placeholder="pass123" required>
+                    <div class="text-end mt-1"><small><a href="#" onclick="showPage('forgot-password-page')" class="text-decoration-none">Forgot Password?</a></small></div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Login</button>
+            </form>
+            <div class="mt-3 text-center">
+                <small>New Student? <a href="#" onclick="showPage('register-page')">Register Here</a></small>
+            </div>
+        </div>
+    </section>
+
+    <section id="register-page" class="container d-flex justify-content-center align-items-center hidden" style="min-height: 100vh;">
+        <div class="card p-4" style="width: 100%; max-width: 500px;">
+            <h3 class="text-center mb-4">Student Registration</h3>
+            <form onsubmit="handleRegister(event)">
+                <div class="row">
+                    <div class="col-md-6 mb-3"><input type="text" id="regName" class="form-control" placeholder="Full Name" required></div>
+                    <div class="col-md-6 mb-3"><input type="text" id="regEnroll" class="form-control" placeholder="Enrollment No" required></div>
+                </div>
+                <div class="mb-3">
+                    <select id="regDept" class="form-control" required>
+                        <option value="">Select Department</option>
+                        <option value="ECE">ECE</option>
+                        <option value="ME">ME</option>
+                        <option value="CE">CE</option>
+                        <option value="EE">EE</option>
+                    </select>
+                </div>
+                <div class="mb-3"><input type="email" id="regEmail" class="form-control" placeholder="Email" required></div>
+                <div class="mb-3"><input type="password" id="regPass" class="form-control" placeholder="Password" required></div>
+                <button type="submit" class="btn btn-success w-100">Register</button>
+            </form>
+            <div class="mt-3 text-center"><a href="#" onclick="showPage('login-page')">Back to Login</a></div>
+        </div>
+    </section>
+
+    <section id="forgot-password-page" class="container d-flex justify-content-center align-items-center hidden" style="min-height: 100vh;">
+        <div class="card p-4" style="width: 100%; max-width: 400px;">
+            <h3 class="text-center mb-4">Reset Password</h3>
+            
+            <form id="fpStep1" onsubmit="sendOTP(event)">
+                <div class="mb-3">
+                    <label>Email</label>
+                    <input type="email" id="fpEmail" class="form-control" placeholder="Registered Email" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Send OTP</button>
+            </form>
+
+            <form id="fpStep2" class="hidden" onsubmit="verifyOTPAndReset(event)">
+                <div class="alert alert-info p-2 mb-3"><small>OTP sent to email (Check Alert)</small></div>
+                <div class="mb-3">
+                    <label>Enter OTP</label>
+                    <input type="text" id="fpOTP" class="form-control" placeholder="Enter 4-digit OTP" required>
+                </div>
+                <div class="mb-3">
+                    <label>New Password</label>
+                    <input type="password" id="fpNewPass" class="form-control" placeholder="New Password" required>
+                </div>
+                <button type="submit" class="btn btn-warning w-100">Reset Password</button>
+            </form>
+            <div class="mt-3 text-center"><a href="#" onclick="showPage('login-page')">Back to Login</a></div>
+        </div>
+    </section>
+
+    <section id="student-portal" class="hidden">
+        <nav class="navbar navbar-dark bg-primary mb-4">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1">Student Portal</span>
+                <button class="btn btn-light btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </nav>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-dark text-white">My Profile</div>
+                        <div class="card-body" id="studentProfileData"></div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <ul class="nav nav-tabs" id="studentTabs">
+                        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-submit">Submit Complaint</a></li>
+                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-history" onclick="loadStudentComplaints()">My History</a></li>
+                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-settings">Settings</a></li>
+                    </ul>
+
+                    <div class="tab-content p-3 bg-white border border-top-0">
+                        <div class="tab-pane fade show active" id="tab-submit">
+                            <form onsubmit="handleComplaintSubmit(event)">
+                                <div class="mb-3 p-3 bg-light border rounded">
+                                    <label class="fw-bold">Submit To:</label>
+                                    <div class="d-flex gap-4 mt-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="submitTo" id="toHOD" value="HOD" checked onchange="toggleTeacherSelect()">
+                                            <label class="form-check-label" for="toHOD">Head of Department (HOD)</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="submitTo" id="toTeacher" value="Teacher" onchange="toggleTeacherSelect()">
+                                            <label class="form-check-label" for="toTeacher">Specific Teacher</label>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 hidden" id="teacherSelectDiv">
+                                        <select id="compTeacher" class="form-control">
+                                            </select>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label>Category</label>
+                                    <select id="compCategory" class="form-control" required>
+                                        <option value="Academics">Academics</option>
+                                        <option value="Infrastructure">Infrastructure</option>
+                                        <option value="Hostel">Hostel</option>
+                                        <option value="Personal">Personal</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3"><label>Title</label><input type="text" id="compTitle" class="form-control" required></div>
+                                <div class="mb-3"><label>Description</label><textarea id="compDesc" class="form-control" rows="4" required></textarea></div>
+                                <div class="mb-3"><label>Proof (Optional)</label><input type="file" id="compFile" class="form-control"></div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="compAnon">
+                                    <label class="form-check-label">File Anonymously</label>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Submit Complaint</button>
+                            </form>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="tab-history">
+                            <table class="table table-hover">
+                                <thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Action</th></tr></thead>
+                                <tbody id="studentComplaintTable"></tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="tab-settings">
+                            <h5>Change Password</h5>
+                            <form onsubmit="handleStudentPasswordChange(event)">
+                                <div class="mb-3"><label>Current Password</label><input type="password" id="stuOldPass" class="form-control" required></div>
+                                <div class="mb-3"><label>New Password</label><input type="password" id="stuNewPass" class="form-control" required></div>
+                                <button type="submit" class="btn btn-warning">Update Password</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="teacher-portal" class="hidden">
+        <nav class="navbar navbar-dark bg-success mb-4">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1">Teacher Dashboard</span>
+                <span id="teacherNameDisplay" class="text-white me-3"></span>
+                <button class="btn btn-light btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </nav>
+        <div class="container">
+            <ul class="nav nav-tabs mb-3">
+                <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#teacher-complaints">Assigned Complaints</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#teacher-students" onclick="loadTeacherStudents()">Registered Students</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#teacher-settings">Settings</a></li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="teacher-complaints">
+                    <div class="card p-3">
+                        <table class="table">
+                            <thead><tr><th>ID</th><th>Student</th><th>Title</th><th>Status</th><th>Actions</th></tr></thead>
+                            <tbody id="teacherComplaintTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="teacher-students">
+                    <div class="card p-3">
+                        <table class="table table-striped">
+                            <thead><tr><th>Name</th><th>Enrollment</th><th>Dept</th><th>Email</th></tr></thead>
+                            <tbody id="teacherStudentTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="teacher-settings">
+                    <div class="card p-3" style="max-width: 500px;">
+                        <h5>Change Password</h5>
+                        <form onsubmit="handleTeacherPasswordChange(event)">
+                            <div class="mb-3"><label>Current Password</label><input type="password" id="teaOldPass" class="form-control" required></div>
+                            <div class="mb-3"><label>New Password</label><input type="password" id="teaNewPass" class="form-control" required></div>
+                            <button type="submit" class="btn btn-warning">Update Password</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="hod-portal" class="hidden">
+        <div class="d-flex">
+            <div class="sidebar col-md-2 d-none d-md-block">
+                <div class="p-3 fw-bold border-bottom">HOD Panel</div>
+                <a href="#" onclick="switchHODTab('overview')" id="link-overview">Analytics</a>
+                <a href="#" onclick="switchHODTab('my-complaints')" id="link-my-complaints">My Complaints</a>
+                <a href="#" onclick="switchHODTab('assignments')" id="link-assignments">All Complaints</a>
+                <a href="#" onclick="switchHODTab('teachers')" id="link-teachers">Teachers</a>
+                <a href="#" onclick="switchHODTab('students')" id="link-students">Students</a>
+                <a href="#" onclick="switchHODTab('settings')" id="link-settings">Settings</a>
+                <a href="#" onclick="logout()" class="text-danger mt-5">Logout</a>
+            </div>
+            <div class="col-md-10 p-4" style="height: 100vh; overflow-y: auto;">
+                <div id="hod-overview">
+                    <h3>Dashboard</h3>
+                    <div class="row mb-4">
+                        <div class="col-md-4"><div class="card bg-primary text-white p-3"><h3><span id="metric-total">0</span></h3><small>Total</small></div></div>
+                        <div class="col-md-4"><div class="card bg-success text-white p-3"><h3><span id="metric-resolved">0%</span></h3><small>Resolved %</small></div></div>
+                        <div class="col-md-4"><div class="card bg-warning text-dark p-3"><h3><span id="metric-pending">0</span></h3><small>Pending</small></div></div>
+                    </div>
+                    <div class="card p-3"><canvas id="perfChart" style="max-height: 300px;"></canvas></div>
+                </div>
+                <div id="hod-my-complaints" class="hidden">
+                    <h3>My Complaints (Unassigned)</h3>
+                    <table class="table table-bordered bg-white">
+                        <thead><tr><th>ID</th><th>Category</th><th>Status</th><th>Action</th></tr></thead>
+                        <tbody id="hodMyComplaintTable"></tbody>
+                    </table>
+                </div>
+                <div id="hod-assignments" class="hidden">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>All Complaints</h3>
+                        <select id="hodFilterTeacher" class="form-select w-auto" onchange="filterHODComplaints()"></select>
+                    </div>
+                    <table class="table table-bordered bg-white">
+                        <thead><tr><th>ID</th><th>Category</th><th>Assigned To</th><th>Status</th><th>Action</th></tr></thead>
+                        <tbody id="hodComplaintTable"></tbody>
+                    </table>
+                </div>
+                <div id="hod-teachers" class="hidden">
+                    <div class="d-flex justify-content-between"><h3>Teachers</h3><button class="btn btn-primary btn-sm" onclick="showAddTeacherModal()">+ Add</button></div>
+                    <ul class="list-group mt-3" id="hodTeacherList"></ul>
+                </div>
+                <div id="hod-students" class="hidden">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3>Registered Students</h3>
+                        <div class="d-flex gap-2">
+                            <input type="text" id="hodStudentSearch" class="form-control" placeholder="Search Name/Enrollment" onkeyup="loadHODStudents()">
+                            <select id="hodStudentFilter" class="form-select w-auto" onchange="loadHODStudents()">
+                                <option value="All">All Departments</option>
+                                <option value="ECE">ECE</option>
+                                <option value="ME">ME</option>
+                                <option value="CE">CE</option>
+                                <option value="EE">EE</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table class="table table-striped bg-white">
+                        <thead><tr><th>Name</th><th>Enrollment</th><th>Dept</th><th>Email</th><th>Action</th></tr></thead>
+                        <tbody id="hodStudentTable"></tbody>
+                    </table>
+                </div>
+                <div id="hod-settings" class="hidden">
+                    <h3>Settings</h3>
+                    <div class="card p-4" style="max-width: 500px;">
+                        <h5>Change Password</h5>
+                        <form onsubmit="handleHodPasswordChange(event)">
+                            <div class="mb-3">
+                                <label>Current Password</label>
+                                <input type="password" id="hodOldPass" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label>New Password</label>
+                                <input type="password" id="hodNewPass" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-warning">Update Password</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Complaint Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <p><strong>ID:</strong> <span id="viewId"></span></p>
+                            <p><strong>Student:</strong> <span id="viewStudent"></span></p>
+                        </div>
+                        <div class="col-6">
+                            <p><strong>Assigned To:</strong> <span id="viewAssigned"></span></p>
+                            <p><strong>Status:</strong> <span id="viewStatus"></span></p>
+                        </div>
+                    </div>
+                    <hr>
+                    <h5 id="viewTitle"></h5>
+                    <p id="viewDesc" class="bg-light p-3 border rounded"></p>
+                    <div id="viewAttachment" class="text-center mb-3 hidden"></div>
+                    <hr>
+                    <h6>Clarification Thread</h6>
+                    <div id="viewChat" class="d-flex flex-column mb-3 p-3 border rounded bg-white" style="max-height: 250px; overflow-y: auto;"></div>
+                    <div class="input-group mb-3">
+                        <input type="text" id="chatInput" class="form-control" placeholder="Type a message...">
+                        <button class="btn btn-outline-primary" onclick="sendChatMessage()">Send</button>
+                    </div>
+                    <hr>
+                    <h6>History:</h6>
+                    <ul id="viewHistory" class="list-group list-group-flush mb-3" style="max-height: 200px; overflow-y:auto;"></ul>
+
+                    <div id="actionForm" class="hidden bg-light p-3 border">
+                        <h6>Update Status & Remarks</h6>
+                        <select id="updateStatusSelect" class="form-control mb-2"></select>
+                        <textarea id="updateNote" class="form-control mb-2" placeholder="Enter message for student / Action details..." rows="3"></textarea>
+                        <button onclick="submitUpdate()" class="btn btn-success w-100">Submit Update</button>
+                    </div>
+
+                    <div id="assignForm" class="hidden bg-light p-3 border mt-2">
+                        <h6>Assign to Teacher</h6>
+                        <select id="assignTeacherSelect" class="form-control mb-2"></select>
+                        <button onclick="submitAssignment()" class="btn btn-primary w-100">Assign</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        /* =========================================
+   1. MOCK DATABASE & INIT
+   ========================================= */
+// API Helper
+const api = {
+    get: async (endpoint) => { toggleLoading(true); try { const r = await fetch('/api' + endpoint); return await r.json(); } finally { toggleLoading(false); } },
+    post: async (endpoint, data) => { toggleLoading(true); try { return await fetch('/api' + endpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); } finally { toggleLoading(false); } },
+    put: async (endpoint, data) => { toggleLoading(true); try { return await fetch('/api' + endpoint, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); } finally { toggleLoading(false); } },
+    del: async (endpoint) => { toggleLoading(true); try { return await fetch('/api' + endpoint, { method: 'DELETE' }); } finally { toggleLoading(false); } }
+};
+
+function toggleLoading(show) {
+    const el = document.getElementById('loadingOverlay');
+    if (show) el.classList.remove('hidden');
+    else el.classList.add('hidden');
+}
+
+let currentUser = null;
+let currentModal = null;
+let myChart = null;
+let generatedOTP = null;
+let resetEmail = null;
+
+/* =========================================
+   2. AUTHENTICATION & NAVIGATION
+   ========================================= */
+function showPage(pageId) {
+    document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
+    document.getElementById(pageId).classList.remove('hidden');
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const pass = document.getElementById('loginPass').value;
+    
+    try {
+        const res = await api.post('/login', { email, pass });
+        if (res.ok) {
+            currentUser = await res.json();
+            showToast(`Welcome, ${currentUser.name}`);
+            if (currentUser.role === 'student') loadStudentPortal();
+            else if (currentUser.role === 'teacher' && !currentUser.isAdmin) loadTeacherPortal();
+            else if (currentUser.role === 'hod' || currentUser.isAdmin) loadHODPortal();
+        } else {
+            alert('Invalid Credentials');
+        }
+    } catch (err) {
+        alert('Login Error');
+    }
+}
+
+async function handleRegister(e) {
+    e.preventDefault();
+    const newUser = {
+        role: 'student',
+        name: document.getElementById('regName').value,
+        enroll: document.getElementById('regEnroll').value,
+        dept: document.getElementById('regDept').value,
+        email: document.getElementById('regEmail').value,
+        pass: document.getElementById('regPass').value,
+        id: 'S' + Date.now()
+    };
+    const res = await api.post('/register', newUser);
+    if(res.ok) {
+        showToast("Registered! Please Login.");
+        showPage('login-page');
+    } else {
+        alert("Registration Failed (Email might exist)");
+    }
+}
+
+async function sendEmail(to, subject, text) {
+    toggleLoading(true);
+    try {
+        const response = await fetch('/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to, subject, text })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || `Server Error: ${response.status}`);
+        return result;
+    } catch (error) {
+        console.error("Failed to send email:", error);
+        return { success: false, error: error.message };
+    } finally {
+        toggleLoading(false);
+    }
+}
+
+async function sendOTP(e) {
+    e.preventDefault();
+    const email = document.getElementById('fpEmail').value;
+    
+    // Check if user exists via API (simplified by just fetching all for now or trying to send)
+    const users = await api.get('/users');
+    const user = users.find(u => u.email === email);
+
+    if (user) {
+        generatedOTP = Math.floor(1000 + Math.random() * 9000).toString();
+        resetEmail = email;
+        
+        showToast("Sending OTP via Email...");
+        const result = await sendEmail(email, "Password Reset OTP", `Your OTP is: ${generatedOTP}`);
+        
+        if (result && result.success) {
+            document.getElementById('fpStep1').classList.add('hidden');
+            document.getElementById('fpStep2').classList.remove('hidden');
+            showToast("OTP Sent Successfully!");
+        } else {
+            alert("Failed to send email. Check server console for details.\nError: " + (result.error || "Unknown"));
+        }
+    } else {
+        alert("Invalid Email");
+    }
+}
+
+async function verifyOTPAndReset(e) {
+    e.preventDefault();
+    const inputOTP = document.getElementById('fpOTP').value;
+    const newPass = document.getElementById('fpNewPass').value;
+
+    if (inputOTP === generatedOTP) {
+        const users = await api.get('/users');
+        const user = users.find(u => u.email === resetEmail);
+        if (user) {
+            await api.put(`/users/${user.id}`, { pass: newPass });
+            showToast("Password Reset Successfully");
+            
+            // Reset UI
+            document.getElementById('fpStep1').reset();
+            document.getElementById('fpStep2').reset();
+            document.getElementById('fpStep1').classList.remove('hidden');
+            document.getElementById('fpStep2').classList.add('hidden');
+            
+            showPage('login-page');
+        }
+    } else {
+        alert("Invalid OTP");
+    }
+}
+
+function logout() {
+    currentUser = null;
+    showPage('login-page');
+}
+
+function showToast(msg) {
+    const toastEl = document.getElementById('liveToast');
+    document.getElementById('toastMessage').innerText = msg;
+    new bootstrap.Toast(toastEl).show();
+}
+
+/* =========================================
+   3. STUDENT CONTROLLER
+   ========================================= */
+function loadStudentPortal() {
+    showPage('student-portal');
+    document.getElementById('studentProfileData').innerHTML = `
+        <p><strong>Name:</strong> ${currentUser.name}</p>
+        <p><strong>ID:</strong> ${currentUser.enroll}</p>
+        <p><strong>Dept:</strong> ${currentUser.dept}</p>
+    `;
+    loadStudentComplaints();
+}
+
+async function toggleTeacherSelect() {
+    const isTeacher = document.getElementById('toTeacher').checked;
+    const div = document.getElementById('teacherSelectDiv');
+    const select = document.getElementById('compTeacher');
+    
+    if (isTeacher) {
+        div.classList.remove('hidden');
+        const users = await api.get('/users');
+        const teachers = users.filter(u => u.role === 'teacher');
+        select.innerHTML = teachers.map(t => `<option value="${t.email}">${t.name}</option>`).join('');
+    } else {
+        div.classList.add('hidden');
+    }
+}
+
+function compressImage(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                
+                // Resize to max 600px to ensure small size (10-50kb range)
+                const MAX_DIM = 600;
+                if (width > height && width > MAX_DIM) {
+                    height *= MAX_DIM / width;
+                    width = MAX_DIM;
+                } else if (height > MAX_DIM) {
+                    width *= MAX_DIM / height;
+                    height = MAX_DIM;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Compress to JPEG at 0.5 quality
+                resolve(canvas.toDataURL('image/jpeg', 0.5));
+            };
+            img.onerror = (err) => reject(err);
+        };
+        reader.onerror = (err) => reject(err);
+    });
+}
+
+function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(e);
+        reader.readAsDataURL(file);
+    });
+}
+
+async function handleComplaintSubmit(e) {
+    e.preventDefault();
+    const isAnon = document.getElementById('compAnon').checked;
+    const submitTo = document.querySelector('input[name="submitTo"]:checked').value;
+    
+    // Determine Assignment
+    let assigned = null;
+    let actionLog = "Submitted to HOD";
+    
+    if (submitTo === 'Teacher') {
+        assigned = document.getElementById('compTeacher').value;
+        actionLog = `Submitted directly to ${assigned}`;
+    }
+
+    // Handle File Compression
+    const fileInput = document.getElementById('compFile');
+    let attachmentData = null;
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        if (file.type.startsWith('image/')) {
+            try {
+                showToast("Compressing attachment...");
+                attachmentData = await compressImage(file);
+            } catch (err) {
+                console.error("Compression error:", err);
+                alert("Failed to process image.");
+                return;
+            }
+        } else {
+            // For non-images, enforce strict size limit to preserve storage
+            if (file.size > 200 * 1024) { // 200KB limit
+                alert("File too large! To preserve storage, non-image attachments must be under 200KB.");
+                return;
+            }
+            try {
+                attachmentData = await readFileAsBase64(file);
+            } catch (err) {
+                alert("Failed to read file.");
+                return;
+            }
+        }
+    }
+
+    const complaint = {
+        id: `CMP-${Date.now()}`,
+        studentId: currentUser.id,
+        studentName: isAnon ? "Anonymous" : currentUser.name,
+        category: document.getElementById('compCategory').value,
+        title: document.getElementById('compTitle').value,
+        description: document.getElementById('compDesc').value,
+        attachment: attachmentData,
+        isAnon: isAnon,
+        status: 'Submitted',
+        assignedTo: assigned,
+        history: [{ date: new Date().toLocaleString(), action: actionLog, by: 'Student' }],
+        chat: [],
+        timestamp: new Date().toISOString()
+    };
+
+    await api.post('/complaints', complaint);
+    
+    // Send Email Alert
+    if (!isAnon) {
+        await sendEmail(currentUser.email, "Complaint Received", `Your complaint (ID: ${complaint.id}) has been submitted successfully.`);
+    }
+
+    // Notify HOD or Assigned Teacher
+    if (assigned) {
+        await sendEmail(assigned, "New Complaint Assigned", `You have been assigned a new complaint (ID: ${complaint.id}).`);
+    } else {
+        // Fetch users to find HOD email
+        const users = await api.get('/users');
+        const hod = users.find(u => u.role === 'hod');
+        const hodEmail = hod ? hod.email : 'ecedepartment100@gmail.com';
+        await sendEmail(hodEmail, "New Complaint Submitted", `A new complaint (ID: ${complaint.id}) has been submitted to the HOD.`);
+    }
+    
+    showToast('Complaint Submitted');
+    e.target.reset();
+    document.getElementById('toHOD').checked = true;
+    toggleTeacherSelect();
+    loadStudentComplaints();
+}
+
+async function loadStudentComplaints() {
+    const all = await api.get('/complaints');
+    const complaints = all.filter(c => c.studentId === currentUser.id);
+    document.getElementById('studentComplaintTable').innerHTML = complaints.map(c => `
+        <tr>
+            <td>${c.id}</td>
+            <td>${c.title}</td>
+            <td><span class="status-badge status-${c.status.replace(/ /g,'')}">${c.status}</span></td>
+            <td><button class="btn btn-sm btn-info" onclick="viewComplaint('${c.id}')">View</button></td>
+        </tr>
+    `).join('');
+}
+
+async function handleStudentPasswordChange(e) {
+    e.preventDefault();
+    const oldPass = document.getElementById('stuOldPass').value;
+    const newPass = document.getElementById('stuNewPass').value;
+
+    if(oldPass !== currentUser.pass) {
+        alert("Incorrect Current Password");
+        return;
+    }
+    
+    const res = await api.put(`/users/${currentUser.id}`, { pass: newPass });
+    if(res.ok) {
+        currentUser.pass = newPass;
+        showToast("Password Updated Successfully");
+        e.target.reset();
+    }
+}
+
+/* =========================================
+   4. TEACHER CONTROLLER
+   ========================================= */
+function loadTeacherPortal() {
+    showPage('teacher-portal');
+    document.getElementById('teacherNameDisplay').innerText = currentUser.name;
+    loadTeacherComplaints();
+}
+
+async function loadTeacherComplaints() {
+    const all = await api.get('/complaints');
+    const complaints = all.filter(c => c.assignedTo === currentUser.email);
+    document.getElementById('teacherComplaintTable').innerHTML = complaints.map(c => `
+        <tr>
+            <td>${c.id}</td>
+            <td>${c.studentName}</td>
+            <td>${c.title}</td>
+            <td><span class="status-badge status-${c.status.replace(/ /g,'')}">${c.status}</span></td>
+            <td><button class="btn btn-sm btn-primary" onclick="viewComplaint('${c.id}')">Manage</button></td>
+        </tr>
+    `).join('');
+}
+
+async function loadTeacherStudents() {
+    const users = await api.get('/users');
+    const students = users.filter(u => u.role === 'student');
+    document.getElementById('teacherStudentTable').innerHTML = students.map(s => `
+        <tr>
+            <td>${s.name}</td>
+            <td>${s.enroll}</td>
+            <td>${s.dept}</td>
+            <td>${s.email}</td>
+        </tr>
+    `).join('');
+}
+
+async function handleTeacherPasswordChange(e) {
+    e.preventDefault();
+    const oldPass = document.getElementById('teaOldPass').value;
+    const newPass = document.getElementById('teaNewPass').value;
+
+    if(oldPass !== currentUser.pass) {
+        alert("Incorrect Current Password");
+        return;
+    }
+    
+    const res = await api.put(`/users/${currentUser.id}`, { pass: newPass });
+    if(res.ok) {
+        currentUser.pass = newPass;
+        showToast("Password Updated Successfully");
+        e.target.reset();
+    }
+}
+
+/* =========================================
+   5. HOD CONTROLLER
+   ========================================= */
+function loadHODPortal() {
+    showPage('hod-portal');
+    switchHODTab('overview');
+}
+
+function switchHODTab(tab) {
+    document.getElementById('hod-overview').classList.add('hidden');
+    document.getElementById('hod-assignments').classList.add('hidden');
+    document.getElementById('hod-my-complaints').classList.add('hidden');
+    document.getElementById('hod-teachers').classList.add('hidden');
+    document.getElementById('hod-students').classList.add('hidden');
+    document.getElementById('hod-settings').classList.add('hidden');
+    document.getElementById('hod-' + tab).classList.remove('hidden');
+
+    if(tab === 'assignments') loadHODComplaints();
+    if(tab === 'my-complaints') loadHODMyComplaints();
+    if(tab === 'teachers') loadHODTeachers();
+    if(tab === 'students') loadHODStudents();
+    if(tab === 'overview') loadHODAnalytics();
+}
+
+async function loadHODMyComplaints() {
+    const all = await api.get('/complaints');
+    const complaints = all.filter(c => !c.assignedTo || c.assignedTo === currentUser.email);
+    document.getElementById('hodMyComplaintTable').innerHTML = complaints.map(c => `
+        <tr>
+            <td>${c.id}</td>
+            <td>${c.category}</td>
+            <td><span class="status-badge status-${c.status.replace(/ /g,'')}">${c.status}</span></td>
+            <td><button class="btn btn-sm btn-primary" onclick="viewComplaint('${c.id}')">Manage</button></td>
+        </tr>
+    `).join('');
+}
+
+async function loadHODComplaints() {
+    const users = await api.get('/users');
+    const teachers = users.filter(u => u.role === 'teacher');
+    const select = document.getElementById('hodFilterTeacher');
+    select.innerHTML = `<option value="All">All Teachers</option>` + teachers.map(t => `<option value="${t.email}">${t.name}</option>`).join('');
+    filterHODComplaints();
+}
+
+async function filterHODComplaints() {
+    const filter = document.getElementById('hodFilterTeacher').value;
+    let complaints = await api.get('/complaints');
+    if(filter !== 'All') complaints = complaints.filter(c => c.assignedTo === filter);
+
+    document.getElementById('hodComplaintTable').innerHTML = complaints.map(c => `
+        <tr>
+            <td>${c.id}</td>
+            <td>${c.category}</td>
+            <td>${c.assignedTo || '<span class="text-danger">Unassigned</span>'}</td>
+            <td><span class="status-badge status-${c.status.replace(/ /g,'')}">${c.status}</span></td>
+            <td><button class="btn btn-sm btn-primary" onclick="viewComplaint('${c.id}')">Manage</button></td>
+        </tr>
+    `).join('');
+}
+
+async function loadHODStudents() {
+    const filter = document.getElementById('hodStudentFilter').value;
+    const search = document.getElementById('hodStudentSearch').value.toLowerCase();
+    const users = await api.get('/users');
+    let students = users.filter(u => u.role === 'student');
+
+    if(filter && filter !== 'All') students = students.filter(s => s.dept === filter);
+    if(search) {
+        students = students.filter(s => 
+            s.name.toLowerCase().includes(search) || 
+            s.enroll.toLowerCase().includes(search)
+        );
+    }
+
+    document.getElementById('hodStudentTable').innerHTML = students.map(s => `
+        <tr>
+            <td>${s.name}</td>
+            <td>${s.enroll}</td>
+            <td>${s.dept}</td>
+            <td>${s.email}</td>
+            <td><button class="btn btn-warning btn-sm" onclick="adminChangeUserPassword('${s.email}')">Reset Pass</button></td>
+        </tr>
+    `).join('');
+}
+
+async function loadHODTeachers() {
+    const users = await api.get('/users');
+    const teachers = users.filter(u => u.role === 'teacher');
+    document.getElementById('hodTeacherList').innerHTML = teachers.map(t => `
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>
+                ${t.name} (${t.email})
+                ${t.isAdmin ? '<span class="badge bg-warning text-dark ms-2">Admin</span>' : ''}
+            </span>
+            <div>
+                <button class="btn btn-warning btn-sm me-2" onclick="adminChangeUserPassword('${t.email}')">Reset Pass</button>
+                <button class="btn btn-sm ${t.isAdmin ? 'btn-secondary' : 'btn-info'} me-2" onclick="toggleAdmin('${t.email}')">
+                    ${t.isAdmin ? 'Revoke Admin' : 'Make Admin'}
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="removeTeacher('${t.email}')">Remove</button>
+            </div>
+        </li>
+    `).join('');
+}
+
+async function showAddTeacherModal() {
+    const email = prompt("Teacher Email:");
+    const name = prompt("Teacher Name:");
+    const pass = prompt("Teacher Password:");
+    if(email && name && pass) {
+        await api.post('/register', { role:'teacher', name, email, pass: pass, id:'T'+Date.now() });
+        loadHODTeachers();
+    }
+}
+
+async function toggleAdmin(email) {
+    const users = await api.get('/users');
+    const user = users.find(u => u.email === email);
+    if(user) {
+        await api.put(`/users/${user.id}`, { isAdmin: !user.isAdmin });
+        loadHODTeachers();
+        showToast(`Admin privileges updated`);
+    }
+}
+
+async function adminChangeUserPassword(email) {
+    const newPass = prompt("Enter new password for " + email + ":");
+    if (newPass) {
+        const users = await api.get('/users');
+        const user = users.find(u => u.email === email);
+        if(user) {
+            await api.put(`/users/${user.id}`, { pass: newPass });
+            showToast("Password changed for " + email);
+        }
+    }
+}
+
+async function removeTeacher(email) {
+    if(confirm('Remove this teacher?')) {
+        await api.del(`/users/${email}`);
+        loadHODTeachers();
+    }
+}
+
+async function loadHODAnalytics() {
+    const complaints = await api.get('/complaints');
+    const users = await api.get('/users');
+    const teachers = users.filter(u => u.role === 'teacher');
+    
+    // Cards
+    const total = complaints.length;
+    const resolved = complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed').length;
+    document.getElementById('metric-total').innerText = total;
+    document.getElementById('metric-resolved').innerText = total ? Math.round((resolved/total)*100) + '%' : '0%';
+    document.getElementById('metric-pending').innerText = complaints.filter(c => c.status === 'Submitted').length;
+
+    // Chart
+    const ctx = document.getElementById('perfChart').getContext('2d');
+    if(myChart) myChart.destroy();
+    myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: teachers.map(t => t.name),
+            datasets: [{
+                label: 'Assigned Complaints',
+                data: teachers.map(t => complaints.filter(c => c.assignedTo === t.email).length),
+                backgroundColor: '#0d6efd'
+            }]
+        }
+    });
+}
+
+async function handleHodPasswordChange(e) {
+    e.preventDefault();
+    const oldPass = document.getElementById('hodOldPass').value;
+    const newPass = document.getElementById('hodNewPass').value;
+
+    if(oldPass !== currentUser.pass) {
+        alert("Incorrect Current Password");
+        return;
+    }
+    
+    const res = await api.put(`/users/${currentUser.id}`, { pass: newPass });
+    if(res.ok) {
+        currentUser.pass = newPass;
+        showToast("Password Updated Successfully");
+        e.target.reset();
+    }
+}
+
+/* =========================================
+   6. VIEW & UPDATE LOGIC (CORE UPDATE)
+   ========================================= */
+async function viewComplaint(id) {
+    const complaints = await api.get('/complaints');
+    const c = complaints.find(x => x.id === id);
+    if (!c) return;
+
+    // Populate View
+    document.getElementById('viewId').innerText = c.id;
+    document.getElementById('viewStudent').innerText = c.studentName;
+    document.getElementById('viewAssigned').innerText = c.assignedTo || "HOD Pool";
+    document.getElementById('viewStatus').innerText = c.status;
+    document.getElementById('viewTitle').innerText = c.title;
+    document.getElementById('viewDesc').innerText = c.description;
+    
+    // Show Attachment if exists
+    const attachDiv = document.getElementById('viewAttachment');
+    if (c.attachment) {
+        if (c.attachment.startsWith('data:image/')) {
+            attachDiv.innerHTML = `<img src="${c.attachment}" class="img-fluid border rounded" style="max-height: 300px;" alt="Proof">`;
+        } else {
+            attachDiv.innerHTML = `<a href="${c.attachment}" download="attachment" class="btn btn-outline-primary">Download Attachment</a>`;
+        }
+        attachDiv.classList.remove('hidden');
+    } else {
+        attachDiv.innerHTML = '';
+        attachDiv.classList.add('hidden');
+    }
+    
+    renderChat(c.chat || []);
+
+    // History
+    document.getElementById('viewHistory').innerHTML = c.history.map(h => 
+        `<li class="list-group-item"><small>${h.date}</small><br><strong>${h.by}:</strong> ${h.action}</li>`
+    ).join('');
+
+    // Toggle Forms
+    const actionForm = document.getElementById('actionForm');
+    const assignForm = document.getElementById('assignForm');
+    actionForm.classList.add('hidden');
+    assignForm.classList.add('hidden');
+
+    // 1. TEACHER/HOD: Update Status
+    if (currentUser.role === 'hod' || currentUser.isAdmin || (currentUser.role === 'teacher' && c.assignedTo === currentUser.email)) {
+        actionForm.classList.remove('hidden');
+        document.getElementById('updateStatusSelect').innerHTML = `
+            <option value="" disabled selected>Select Status...</option>
+            <option value="Seen">Seen</option>
+            <option value="Under Review">Under Review</option>
+            <option value="In Process">In Process</option>
+            <option value="Resolved">Resolved</option>
+            <option value="Closed">Closed</option>
+            <option value="Reopen">Reopen</option>
+        `;
+        if (['Seen', 'Under Review', 'In Process', 'Resolved', 'Closed', 'Reopen'].includes(c.status)) {
+            document.getElementById('updateStatusSelect').value = c.status;
+        }
+    }
+
+    // 2. STUDENT: Reopen Closed Complaints
+    if (currentUser.role === 'student' && (c.status === 'Closed' || c.status === 'Resolved')) {
+        actionForm.classList.remove('hidden');
+        document.getElementById('updateStatusSelect').innerHTML = `<option value="Reopen">Reopen Complaint</option>`;
+    }
+
+    // 3. HOD: Assign Teacher
+    if ((currentUser.role === 'hod' || currentUser.isAdmin) && c.status !== 'Closed') {
+        assignForm.classList.remove('hidden');
+        const users = await api.get('/users');
+        const teachers = users.filter(u => u.role === 'teacher');
+        document.getElementById('assignTeacherSelect').innerHTML = teachers.map(t => `<option value="${t.email}">${t.name}</option>`).join('');
+    }
+
+    // Show Modal
+    currentModal = new bootstrap.Modal(document.getElementById('detailModal'));
+    currentModal.show();
+    document.getElementById('detailModal').dataset.cid = id;
+}
+
+async function submitUpdate() {
+    const id = document.getElementById('detailModal').dataset.cid;
+    const newStatus = document.getElementById('updateStatusSelect').value;
+    const note = document.getElementById('updateNote').value;
+
+    if ((newStatus === 'Reopen' || newStatus === 'Closed') && !note) {
+        alert('Please add a note/reason for this action.');
+        return;
+    }
+
+    const complaints = await api.get('/complaints');
+    const c = complaints.find(c => c.id === id);
+    
+    c.status = newStatus;
+    c.history.push({
+        date: new Date().toLocaleString(),
+        action: `Status changed to ${newStatus}. Note: ${note}`,
+        by: currentUser.name
+    });
+
+    await api.put(`/complaints/${id}`, c);
+
+    // Notify Student of Status Change
+    const users = await api.get('/users');
+    const student = users.find(u => u.id === c.studentId);
+    if (student && student.email) {
+        await sendEmail(student.email, `Complaint Status Update [${id}]`, 
+            `Your complaint status has been changed to "${newStatus}".\n\nRemarks: ${note || 'None'}`);
+    }
+
+    showToast("Updated!");
+    currentModal.hide();
+
+    // Refresh View
+    if(currentUser.role === 'student') loadStudentComplaints();
+    else if(currentUser.role === 'teacher') loadTeacherComplaints();
+    else loadHODComplaints();
+}
+
+async function submitAssignment() {
+    const id = document.getElementById('detailModal').dataset.cid;
+    const teacher = document.getElementById('assignTeacherSelect').value;
+    
+    const complaints = await api.get('/complaints');
+    const c = complaints.find(c => c.id === id);
+    
+    c.assignedTo = teacher;
+    c.status = 'Under Review';
+    c.history.push({ date: new Date().toLocaleString(), action: `Assigned to ${teacher}`, by: currentUser.name });
+
+    await api.put(`/complaints/${id}`, c);
+
+    // Notify Teacher of Assignment
+    await sendEmail(teacher, `New Complaint Assigned [${id}]`, 
+        `You have been assigned a new complaint by the HOD.\nComplaint ID: ${id}\n\nPlease log in to the portal to review and take action.`);
+
+    showToast("Assigned!");
+    currentModal.hide();
+    loadHODComplaints();
+}
+
+async function sendChatMessage() {
+    const id = document.getElementById('detailModal').dataset.cid;
+    const msg = document.getElementById('chatInput').value.trim();
+    if (!msg) return;
+
+    const complaints = await api.get('/complaints');
+    const c = complaints.find(c => c.id === id);
+    if (!c) return;
+    
+    // Determine sender name (preserve anonymity if applicable)
+    let sender = currentUser.name;
+    if (currentUser.role === 'student' && c.isAnon) {
+        sender = "Anonymous";
+    }
+
+    if (!c.chat) c.chat = [];
+    c.chat.push({
+        sender: sender,
+        role: currentUser.role,
+        msg: msg,
+        date: new Date().toLocaleString()
+    });
+
+    // Notify Recipient of New Message
+    const users = await api.get('/users');
+    let recipientEmail = null;
+    if (currentUser.role === 'student') {
+        // If student sends, notify Assigned Teacher OR HOD
+        if (c.assignedTo) {
+            recipientEmail = c.assignedTo;
+        } else {
+            const hod = users.find(u => u.role === 'hod');
+            recipientEmail = hod ? hod.email : 'ecedepartment100@gmail.com';
+        }
+    } else {
+        // If Teacher/HOD sends, notify Student
+        const student = users.find(u => u.id === c.studentId);
+        recipientEmail = student ? student.email : null;
+    }
+
+    if (recipientEmail) {
+        sendEmail(recipientEmail, `New Message on Complaint [${c.id}]`, 
+            `You have a new message from ${sender}:\n\n"${msg}"\n\nPlease log in to reply.`);
+    }
+
+    await api.put(`/complaints/${id}`, c);
+    document.getElementById('chatInput').value = '';
+    renderChat(c.chat);
+}
+
+function renderChat(chatData) {
+    const chatBox = document.getElementById('viewChat');
+    if (!chatData || chatData.length === 0) {
+        chatBox.innerHTML = '<small class="text-muted text-center">No messages yet.</small>';
+        return;
+    }
+    
+    chatBox.innerHTML = chatData.map(m => {
+        let isMe = false;
+        if (currentUser.role === 'student' && m.role === 'student') isMe = true;
+        else if (m.sender === currentUser.name) isMe = true;
+
+        const align = isMe ? 'align-self-end bg-primary text-white' : 'align-self-start bg-light border';
+        
+        return `
+            <div class="p-2 mb-2 rounded ${align}" style="max-width: 80%;">
+                <small class="fw-bold d-block" style="font-size: 0.7rem;">${m.sender} <span class="fw-normal">(${m.role})</span></small>
+                <div>${m.msg}</div>
+                <small class="d-block text-end" style="font-size: 0.6rem; opacity: 0.8;">${m.date}</small>
+            </div>
+        `;
+    }).join('');
+    
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+    </script>
+</body>
+</html>(!chatData || chatData.length === 0) {
+        chatBox.innerHTML = '<small class="text-muted text-center">No messages yet.</small>';
+        return;
+    }
+    
+    chatBox.innerHTML = chatData.map(m => {
+        let isMe = false;
+        if (currentUser.role === 'student' && m.role === 'student') isMe = true;
+        else if (m.sender === currentUser.name) isMe = true;
+
+        const align = isMe ? 'align-self-end bg-primary text-white' : 'align-self-start bg-light border';
+        
+        return `
+            <div class="p-2 mb-2 rounded ${align}" style="max-width: 80%;">
+                <small class="fw-bold d-block" style="font-size: 0.7rem;">${m.sender} <span class="fw-normal">(${m.role})</span></small>
+                <div>${m.msg}</div>
+                <small class="d-block text-end" style="font-size: 0.6rem; opacity: 0.8;">${m.date}</small>
+            </div>
+        `;
+    }).join('');
+    
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+    </script>
+</body>
+</html>
