@@ -71,16 +71,13 @@ async function seedUsers() {
 // --- EMAIL CONFIGURATION ---
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    family: 4, // Force IPv4 to prevent connection timeouts on Render
+    port: 465,
+    secure: true,
+    family: 4,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    },
-    connectionTimeout: 20000, // 20 seconds
-    greetingTimeout: 20000,
-    socketTimeout: 20000
+    }
 });
 
 // Verify connection configuration
