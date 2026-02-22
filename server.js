@@ -116,9 +116,11 @@ app.get('/api/complaints', async (req, res) => {
 
 app.post('/api/complaints', async (req, res) => {
     try {
-        const nc = new Complaint(req.body);
+        const count = await Complaint.countDocuments();
+        const newId = (count + 1).toString();
+        const nc = new Complaint({ ...req.body, id: newId });
         await nc.save();
-        res.json({ success: true });
+        res.json({ success: true, id: newId });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
