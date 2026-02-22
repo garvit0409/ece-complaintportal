@@ -74,8 +74,17 @@ const transporter = nodemailer.createTransport({
     port: 587,
     secure: false,
     auth: {
-        user: process.env.EMAIL_USER,
+        user: process.env.BREVO_USER || process.env.EMAIL_USER, // Use specific login email if provided
         pass: process.env.BREVO_SMTP_KEY
+    }
+});
+
+// Verify connection configuration
+transporter.verify(function (error, success) {
+    if (error) {
+        console.log("Email Service Error:", error);
+    } else {
+        console.log("Email Service is ready to send emails");
     }
 });
 
