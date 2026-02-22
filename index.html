@@ -1193,29 +1193,4 @@ function renderChat(chatData) {
 }
     </script>
 </body>
-</html>(!chatData || chatData.length === 0) {
-        chatBox.innerHTML = '<small class="text-muted text-center">No messages yet.</small>';
-        return;
-    }
-    
-    chatBox.innerHTML = chatData.map(m => {
-        let isMe = false;
-        if (currentUser.role === 'student' && m.role === 'student') isMe = true;
-        else if (m.sender === currentUser.name) isMe = true;
-
-        const align = isMe ? 'align-self-end bg-primary text-white' : 'align-self-start bg-light border';
-        
-        return `
-            <div class="p-2 mb-2 rounded ${align}" style="max-width: 80%;">
-                <small class="fw-bold d-block" style="font-size: 0.7rem;">${m.sender} <span class="fw-normal">(${m.role})</span></small>
-                <div>${m.msg}</div>
-                <small class="d-block text-end" style="font-size: 0.6rem; opacity: 0.8;">${m.date}</small>
-            </div>
-        `;
-    }).join('');
-    
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-    </script>
-</body>
 </html>
