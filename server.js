@@ -73,9 +73,10 @@ const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
     secure: false,
+    family: 4, // Force IPv4 to prevent connection timeouts on Render
     auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        pass: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : '' // Remove spaces automatically
     },
     connectionTimeout: 20000, // 20 seconds
     greetingTimeout: 20000,
