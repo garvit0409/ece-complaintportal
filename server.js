@@ -76,7 +76,7 @@ const transporter = nodemailer.createTransport({
     family: 4, // Force IPv4 to prevent connection timeouts on Render
     auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : '' // Remove spaces automatically
+        pass: process.env.EMAIL_PASS
     },
     connectionTimeout: 20000, // 20 seconds
     greetingTimeout: 20000,
