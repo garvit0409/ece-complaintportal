@@ -780,18 +780,59 @@ async function handleComplaintSubmit(e) {
         const resData = await res.json();
         const newId = resData.id;
         
-        // Send Email Alert
+        // Prepare detailed email content
+        const submissionTime = new Date(complaint.timestamp).toLocaleString();
+        let submittedToText = "HOD";
+        if (submitTo === 'Teacher') {
+            const teacherSelect = document.getElementById('compTeacher');
+            submittedToText = teacherSelect.options[teacherSelect.selectedIndex].text;
+        }
+
+        const studentEmailBody = `Your complaint has been successfully submitted.
+
+Complaint Details:
+-------------------
+ID: ${newId}
+Title: ${complaint.title}
+Category: ${complaint.category}
+Submitted On: ${submissionTime}
+Submitted To: ${submittedToText}
+
+Description:
+------------
+${complaint.description}
+
+You will be notified of any updates.`;
+
+        const staffEmailBody = `A new complaint has been submitted.
+
+Complaint Details:
+-------------------
+ID: ${newId}
+Title: ${complaint.title}
+Category: ${complaint.category}
+Submitted By: ${complaint.studentName}
+Submitted On: ${submissionTime}
+Submitted To: ${submittedToText}
+
+Description:
+------------
+${complaint.description}
+
+Please log in to the portal to view more details and take action.`;
+
+        // Send Email Alerts
         if (!isAnon) {
-            await sendEmail(currentUser.email, "Complaint Received", `Your complaint (ID: ${newId}) has been submitted successfully.`);
+            await sendEmail(currentUser.email, `Complaint Received [ID: ${newId}]`, studentEmailBody);
         }
 
         // Notify HOD or Assigned Teacher
         if (assigned) {
-            await sendEmail(assigned, "New Complaint Assigned", `You have been assigned a new complaint (ID: ${newId}).`);
+            await sendEmail(assigned, `New Complaint Assigned [ID: ${newId}]`, staffEmailBody);
         } else {
             // Send to specific HOD email
             const hodEmail = 'garvitarora2310@gmail.com';
-            await sendEmail(hodEmail, "New Complaint Submitted", `A new complaint (ID: ${newId}) has been submitted to the HOD.`);
+            await sendEmail(hodEmail, `New Complaint Submitted [ID: ${newId}]`, staffEmailBody);
         }
         
         showToast('Complaint Submitted');
