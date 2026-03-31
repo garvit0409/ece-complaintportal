@@ -429,15 +429,20 @@
                     <p id="viewDesc" class="bg-light p-3 border rounded"></p>
                     <div id="viewAttachment" class="text-center mb-3 hidden"></div>
                     <hr>
-                    <h6>Clarification Thread</h6>
-                    <div id="viewChat" class="d-flex flex-column mb-3 p-3 border rounded bg-white" style="max-height: 250px; overflow-y: auto;"></div>
-                    <div class="input-group mb-3">
-                        <input type="text" id="chatInput" class="form-control" placeholder="Type a message...">
-                        <button class="btn btn-outline-primary" onclick="sendChatMessage()">Send</button>
+                    <button class="btn btn-outline-info w-100 mb-3" type="button" onclick="document.getElementById('chatHistorySection').classList.toggle('hidden')">
+                        <i class="fa fa-comments"></i> Toggle Clarification & History
+                    </button>
+                    <div id="chatHistorySection" class="hidden border p-3 rounded bg-light mb-3">
+                        <h6>Clarification Thread</h6>
+                        <div id="viewChat" class="d-flex flex-column mb-3 p-3 border rounded bg-white" style="max-height: 250px; overflow-y: auto;"></div>
+                        <div class="input-group mb-3">
+                            <input type="text" id="chatInput" class="form-control" placeholder="Type a message...">
+                            <button class="btn btn-outline-primary" onclick="sendChatMessage()">Send</button>
+                        </div>
+                        <hr>
+                        <h6>System History:</h6>
+                        <ul id="viewHistory" class="list-group list-group-flush mb-3" style="max-height: 150px; overflow-y:auto;"></ul>
                     </div>
-                    <hr>
-                    <h6>History:</h6>
-                    <ul id="viewHistory" class="list-group list-group-flush mb-3" style="max-height: 200px; overflow-y:auto;"></ul>
 
                     <div id="actionForm" class="hidden bg-light p-3 border">
                         <h6>Update Status & Remarks</h6>
@@ -1130,7 +1135,7 @@ async function loadHODAnalytics() {
     const total = complaints.length;
     const resolved = complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed').length;
     document.getElementById('metric-total').innerText = total;
-    document.getElementById('metric-resolved').innerText = total ? Math.round((resolved/total)*100) + '%' : '0%';
+    document.getElementById('metric-resolved').innerText = total ? ((resolved/total)*100).toFixed(1) + '%' : '0%';
     document.getElementById('metric-pending').innerText = complaints.filter(c => c.status === 'Submitted').length;
 
     // Chart
@@ -1140,11 +1145,27 @@ async function loadHODAnalytics() {
         type: 'bar',
         data: {
             labels: teachers.map(t => t.name),
-            datasets: [{
-                label: 'Assigned Complaints',
-                data: teachers.map(t => complaints.filter(c => c.assignedTo === t.email).length),
-                backgroundColor: '#0d6efd'
-            }]
+            datasets: [
+                {
+                    label: 'Assigned',
+                    data: teachers.map(t => complaints.filter(c => c.assignedTo === t.email).length),
+                    backgroundColor: '#0d6efd'
+                },
+                {
+                    label: 'Resolved',
+                    data: teachers.map(t => complaints.filter(c => c.assignedTo === t.email && (c.status === 'Resolved' || c.status === 'Closed')).length),
+                    backgroundColor: '#198754'
+                },
+                {
+                    label: 'Pending',
+                    data: teachers.map(t => complaints.filter(c => c.assignedTo === t.email && c.status !== 'Resolved' && c.status !== 'Closed').length),
+                    backgroundColor: '#ffc107'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
     });
 }
@@ -1205,7 +1226,8 @@ async function viewComplaint(id) {
         attachDiv.classList.add('hidden');
     }
     
-    renderChat(c.chat || []);
+    document.getElementById('chatHistorySection').classList.add('hidden');
+    renderChat(c);
 
     // History
     document.getElementById('viewHistory').innerHTML = c.history.map(h => 
@@ -1390,17 +1412,27 @@ async function sendChatMessage() {
 
     await api.put(`/complaints/${id}`, c);
     document.getElementById('chatInput').value = '';
-    renderChat(c.chat);
+    renderChat(c);
 }
 
-function renderChat(chatData) {
+function renderChat(c) {
     const chatBox = document.getElementById('viewChat');
-    if (!chatData || chatData.length === 0) {
-        chatBox.innerHTML = '<small class="text-muted text-center">No messages yet.</small>';
+    const chatData = c.chat || [];
+    
+    const initialMsg = `
+        <div class="p-2 mb-2 rounded align-self-start bg-light border" style="max-width: 80%;">
+            <small class="fw-bold d-block" style="font-size: 0.7rem;">${c.studentName} <span class="fw-normal">(Original Complaint)</span></small>
+            <div>${c.description}</div>
+            <small class="d-block text-end" style="font-size: 0.6rem; opacity: 0.8;">${new Date(c.timestamp).toLocaleString()}</small>
+        </div>
+    `;
+
+    if (chatData.length === 0) {
+        chatBox.innerHTML = initialMsg + '<small class="text-muted text-center d-block mt-2">No further messages.</small>';
         return;
     }
     
-    chatBox.innerHTML = chatData.map(m => {
+    const chatHTML = chatData.map(m => {
         let isMe = false;
         if (currentUser.role === 'student' && m.role === 'student') isMe = true;
         else if (m.sender === currentUser.name) isMe = true;
@@ -1416,6 +1448,7 @@ function renderChat(chatData) {
         `;
     }).join('');
     
+    chatBox.innerHTML = initialMsg + chatHTML;
     chatBox.scrollTop = chatBox.scrollHeight;
 }
     </script>
