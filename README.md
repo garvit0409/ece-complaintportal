@@ -8,4 +8,5 @@ password-- Garvit@123
 
 
 
-and you can register youself as student and login for stunetn page 
+and you can register youself as student and login for stuent page 
+and go to this link [https://ece-complaintportal.onrender.com/](url) for live site and wait for 20 sec before you can log in
